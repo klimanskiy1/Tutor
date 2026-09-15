@@ -1,0 +1,26 @@
+# локальные данные (прогресс, БД) — никогда не коммитить
+data/
+*.db
+*.db-journal
+*.sqlite*
+
+# секреты
+.env
+*.env
+*.key
+*.pem
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# скриншоты-исходники тестов (кладём сюда, в репо не идут)
+inbox/
+
+# редакторы/ОС
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

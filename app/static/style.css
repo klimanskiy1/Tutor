@@ -1,0 +1,63 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #f5f5f5; color: #222; }
+header { display: flex; align-items: center; gap: 24px; padding: 10px 20px; background: #fff; border-bottom: 1px solid #ddd; }
+.brand { font-weight: bold; font-size: 20px; text-decoration: none; color: #222; }
+nav a { margin-right: 14px; color: #444; }
+main { max-width: 860px; margin: 24px auto; padding: 0 16px; }
+h1, h2 { margin: 0 0 12px; }
+button { font: inherit; padding: 6px 14px; border: 1px solid #bbb; border-radius: 6px; background: #fff; cursor: pointer; }
+button:hover { background: #eee; }
+button.primary { background: #2a6fdb; color: #fff; border-color: #2a6fdb; }
+button.primary:hover { background: #1f5bb8; }
+button.danger { color: #b00; border-color: #d99; }
+button:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=number], textarea, select { font: inherit; padding: 6px 8px; border: 1px solid #bbb; border-radius: 6px; width: 100%; }
+textarea { min-height: 60px; resize: vertical; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.muted { color: #777; font-size: 14px; }
+.err { color: #b00; }
+.ok { color: #1a7f37; }
+
+/* колоды */
+table { width: 100%; border-collapse: collapse; background: #fff; }
+td, th { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+th { font-weight: 600; color: #555; font-size: 14px; }
+td.num { text-align: right; white-space: nowrap; }
+.badge { display: inline-block; min-width: 26px; text-align: center; padding: 0 6px; border-radius: 10px; font-size: 13px; }
+.badge.new { background: #dbe8ff; color: #1c4ea1; }
+.badge.due { background: #d6f2dc; color: #1a6a2d; }
+.badge.learn { background: #ffe8c2; color: #8a5300; }
+
+/* учёба */
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-top: 12px; }
+.question { font-size: 20px; white-space: pre-wrap; margin-bottom: 14px; }
+.question img, .card img { max-width: 100%; display: block; margin: 10px 0; border: 1px solid #eee; }
+.options { display: flex; flex-direction: column; gap: 6px; }
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; background: #fafafa; }
+.opt:hover { background: #f0f0f0; }
+.opt.selected { border-color: #2a6fdb; background: #e8f0ff; }
+.opt.right { border-color: #1a7f37; background: #e3f5e8; }
+.opt.wrong { border-color: #b00; background: #fde8e8; }
+.opt .key { color: #999; font-size: 13px; min-width: 16px; }
+.result { margin-top: 14px; padding: 12px; border-radius: 8px; }
+.result.good { background: #e3f5e8; }
+.result.bad { background: #fde8e8; }
+.result.near { background: #fff3d6; }
+.result.flash { background: #eef; }
+.answer-text { white-space: pre-wrap; font-size: 18px; }
+.explain { margin-top: 8px; color: #444; white-space: pre-wrap; }
+.ratings { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.ratings button { flex: 1; min-width: 100px; padding: 10px; }
+.ratings button small { display: block; color: #777; font-weight: normal; }
+.ratings button.suggested { border-width: 2px; border-color: #2a6fdb; }
+.counts { display: flex; gap: 14px; font-size: 14px; color: #666; }
+.progress-info { font-size: 13px; color: #888; margin-top: 12px; }
+kbd { font: 12px monospace; background: #eee; padding: 1px 5px; border-radius: 4px; border: 1px solid #ccc; }
+
+/* редактор */
+.card-edit { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 10px 0; }
+.card-edit .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.card-edit label { display: block; font-size: 13px; color: #666; margin-top: 6px; }
+.opts-edit .row { margin: 4px 0; }
+.opts-edit input[type=text] { flex: 1; }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 18px; border-radius: 8px; }

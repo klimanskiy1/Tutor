@@ -1,0 +1,47 @@
+{
+  "name": "Демо: как это работает",
+  "description": "Пример колоды со всеми типами карточек. Можно удалить.",
+  "new_per_day": 20,
+  "cards": [
+    {
+      "id": "d1",
+      "type": "choice",
+      "question": "Choose the correct form: She ___ to school every day.",
+      "options": ["go", "goes", "going", "gone"],
+      "answer": 1,
+      "explanation": "Present Simple, 3-е лицо ед. числа — окончание -s/-es."
+    },
+    {
+      "id": "d2",
+      "type": "multi",
+      "question": "Какие из этих величин векторные?",
+      "options": ["Скорость", "Масса", "Сила", "Время"],
+      "answer": [0, 2]
+    },
+    {
+      "id": "d3",
+      "type": "truefalse",
+      "question": "При равномерном движении ускорение равно нулю.",
+      "answer": true
+    },
+    {
+      "id": "d4",
+      "type": "text",
+      "question": "Переведи на английский: «вчера»",
+      "answer": "yesterday"
+    },
+    {
+      "id": "d5",
+      "type": "text",
+      "question": "g на Земле (м/с², округли до десятых)",
+      "answer": "9.8",
+      "accept": ["9,8", "9.81", "10"]
+    },
+    {
+      "id": "d6",
+      "type": "flash",
+      "question": "Второй закон Ньютона",
+      "answer": "F = m·a — сила равна произведению массы на ускорение."
+    }
+  ]
+}
