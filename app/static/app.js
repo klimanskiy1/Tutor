@@ -2,6 +2,7 @@
 const $app = document.getElementById("app");
 const TYPE_NAMES = { choice: "Один вариант", multi: "Несколько вариантов", truefalse: "Верно / неверно", text: "Ввод текста", flash: "Карточка (самооценка)" };
 const RATINGS = [[1, "Снова"], [2, "Трудно"], [3, "Хорошо"], [4, "Легко"]];
+const LETTERS = "abcdefghij"; // подписи вариантов — как на бумажном тесте
 
 let keyHandler = null;
 document.addEventListener("keydown", (e) => { if (keyHandler) keyHandler(e); });
@@ -143,8 +144,8 @@ async function studyView(deckIds, cram) {
     let body = "";
     if (card.type === "choice" || card.type === "multi") {
       body = `<div class="options">` + card.options.map((o, i) =>
-        `<div class="opt ${selected.has(i) ? "selected" : ""}" data-i="${i}"><span class="key">${i + 1}</span><span>${esc(o)}</span></div>`).join("") + `</div>
-        <p class="muted">${card.type === "multi" ? "Выбери все подходящие" : "Выбери один"} — цифры на клавиатуре, <kbd>Enter</kbd> — ответить</p>
+        `<div class="opt ${selected.has(i) ? "selected" : ""}" data-i="${i}"><span class="key">${LETTERS[i] || i + 1}.</span><span>${esc(o)}</span></div>`).join("") + `</div>
+        <p class="muted">${card.type === "multi" ? "Выбери все подходящие" : "Выбери один"} — буквы <kbd>a</kbd>–<kbd>${LETTERS[card.options.length - 1]}</kbd> или цифры на клавиатуре, <kbd>Enter</kbd> — ответить</p>
         <div class="row"><button class="primary" id="submit" ${selected.size ? "" : "disabled"}>Ответить</button></div>`;
     } else if (card.type === "truefalse") {
       body = `<div class="row"><button class="primary" id="tf1">Верно <kbd>1</kbd></button><button class="primary" id="tf0">Неверно <kbd>2</kbd></button></div>`;
@@ -166,7 +167,11 @@ async function studyView(deckIds, cram) {
     keyHandler = (e) => {
       if (e.target.tagName === "INPUT" && e.key !== "Enter") return;
       if (card.type === "truefalse") { if (e.key === "1") submit(true); if (e.key === "2") submit(false); }
-      else if ((card.type === "choice" || card.type === "multi") && /^[1-9]$/.test(e.key) && +e.key <= card.options.length) toggle(+e.key - 1);
+      else if (card.type === "choice" || card.type === "multi") {
+        const m = /^Key([A-J])$/.exec(e.code);
+        const i = m ? LETTERS.indexOf(m[1].toLowerCase()) : (/^[1-9]$/.test(e.key) ? +e.key - 1 : -1);
+        if (i >= 0 && i < card.options.length && !e.ctrlKey && !e.altKey && !e.metaKey) toggle(i);
+      }
       if (e.key === "Enter") { e.preventDefault(); submit(); }
     };
   }
@@ -204,7 +209,7 @@ async function studyView(deckIds, cram) {
       const mine = new Set(card.type === "choice" ? [given] : given);
       body = `<div class="options">` + card.options.map((o, i) => {
         const c = right.has(i) ? "right" : (mine.has(i) ? "wrong" : "");
-        return `<div class="opt ${c}"><span class="key">${i + 1}</span><span>${esc(o)}${mine.has(i) ? " ←" : ""}</span></div>`;
+        return `<div class="opt ${c}"><span class="key">${LETTERS[i] || i + 1}.</span><span>${esc(o)}${mine.has(i) ? " ←" : ""}</span></div>`;
       }).join("") + `</div>`;
     } else if (card.type === "truefalse") {
       body = `<div>Твой ответ: <b>${given ? "верно" : "неверно"}</b>. Правильно: <b>${res.answer ? "верно" : "неверно"}</b></div>`;
@@ -248,7 +253,6 @@ async function browseView(deckIds) {
   $app.innerHTML = "<p class='muted'>Загрузка…</p>";
   const items = await api("GET", `/api/study/cards?decks=${encodeURIComponent(deckIds)}`);
   if (!items.length) { $app.innerHTML = `<p class="muted">В колоде нет карточек.</p>`; return; }
-  const LETTERS = "abcdefghij";
   let i = 0;
 
   function render() {
