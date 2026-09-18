@@ -157,9 +157,11 @@ async function studyView(deckIds, cram) {
     }
     $app.innerHTML = header() + `<div class="card">
       <div class="muted">${cur.is_new ? "новая" : `повтор #${cur.reps}`} · ${TYPE_NAMES[card.type]}</div>
-      <div class="question">${esc(card.question)}</div>${imgHtml(card)}${body}</div>`;
+      <div class="question">${esc(card.question)}</div>${imgHtml(card)}${body}
+      <div class="row skip-row"><button id="skip" title="Засчитывается как неверный ответ">Пропустить <kbd>Esc</kbd></button></div></div>`;
 
     $app.querySelectorAll(".opt").forEach((el) => el.onclick = () => toggle(+el.dataset.i));
+    document.getElementById("skip").onclick = skip;
     const s = document.getElementById("submit"); if (s) s.onclick = submit;
     const a = document.getElementById("ans"); if (a) a.focus();
     const tf1 = document.getElementById("tf1"); if (tf1) { tf1.onclick = () => submit(true); document.getElementById("tf0").onclick = () => submit(false); }
@@ -173,7 +175,17 @@ async function studyView(deckIds, cram) {
         if (i >= 0 && i < card.options.length && !e.ctrlKey && !e.altKey && !e.metaKey) toggle(i);
       }
       if (e.key === "Enter") { e.preventDefault(); submit(); }
+      if (e.key === "Escape") { e.preventDefault(); skip(); }
     };
+  }
+
+  // пропуск = неверный ответ: показываем правильный и предлагаем «Снова»
+  async function skip() {
+    keyHandler = null;
+    const res = await api("POST", `/api/decks/${cur.deck_id}/check`, { card_id: cur.card.id, answer: null });
+    res.correct = false; res.near = false; res.suggested = 1;
+    phase = "rate";
+    renderResult(null, res, true);
   }
 
   function toggle(i) {
@@ -196,30 +208,31 @@ async function studyView(deckIds, cram) {
     renderResult(answer, res);
   }
 
-  function renderResult(given, res) {
+  function renderResult(given, res, skipped = false) {
     const card = cur.card;
     let body = "", cls, title;
-    if (card.type === "flash") { cls = "flash"; title = "Ответ"; }
+    if (skipped) { cls = "bad"; title = "Пропущено"; }
+    else if (card.type === "flash") { cls = "flash"; title = "Ответ"; }
     else if (res.correct && !res.near) { cls = "good"; title = "Верно"; }
     else if (res.near) { cls = "near"; title = "Почти (опечатка?)"; }
     else { cls = "bad"; title = "Неверно"; }
 
     if (card.type === "choice" || card.type === "multi") {
       const right = new Set(card.type === "choice" ? [res.answer] : res.answer);
-      const mine = new Set(card.type === "choice" ? [given] : given);
+      const mine = new Set(given === null ? [] : (card.type === "choice" ? [given] : given));
       body = `<div class="options">` + card.options.map((o, i) => {
         const c = right.has(i) ? "right" : (mine.has(i) ? "wrong" : "");
         return `<div class="opt ${c}"><span class="key">${LETTERS[i] || i + 1}.</span><span>${esc(o)}${mine.has(i) ? " ←" : ""}</span></div>`;
       }).join("") + `</div>`;
     } else if (card.type === "truefalse") {
-      body = `<div>Твой ответ: <b>${given ? "верно" : "неверно"}</b>. Правильно: <b>${res.answer ? "верно" : "неверно"}</b></div>`;
+      body = `<div>${skipped ? "" : `Твой ответ: <b>${given ? "верно" : "неверно"}</b>. `}Правильно: <b>${res.answer ? "верно" : "неверно"}</b></div>`;
     } else if (card.type === "text") {
-      body = `<div>Твой ответ: <b>${esc(given) || "—"}</b></div><div>Правильно: <span class="answer-text"><b>${esc(res.answer)}</b></span>${res.accept.length ? ` <span class="muted">(также: ${esc(res.accept.join(", "))})</span>` : ""}</div>`;
+      body = `${skipped ? "" : `<div>Твой ответ: <b>${esc(given) || "—"}</b></div>`}<div>Правильно: <span class="answer-text"><b>${esc(res.answer)}</b></span>${res.accept.length ? ` <span class="muted">(также: ${esc(res.accept.join(", "))})</span>` : ""}</div>`;
     } else {
       body = `<div class="answer-text">${esc(res.answer)}</div>`;
     }
     const sug = res.suggested;
-    const hint = cls === "bad" ? `<p class="muted">Если на самом деле ответил верно — жми «Хорошо».</p>` : "";
+    const hint = cls === "bad" && !skipped ? `<p class="muted">Если на самом деле ответил верно — жми «Хорошо».</p>` : "";
     $app.innerHTML = header() + `<div class="card">
       <div class="question">${esc(card.question)}</div>${imgHtml(card)}
       <div class="result ${cls}"><b>${title}</b>${body}${res.explanation ? `<div class="explain">${esc(res.explanation)}</div>` : ""}</div>${hint}
@@ -239,7 +252,7 @@ async function studyView(deckIds, cram) {
     const correct = card.type === "flash" ? (r > 1) : (res.correct || r >= 3);
     await api("POST", `/api/decks/${cur.deck_id}/answer`, {
       card_id: card.id, rating: r, correct,
-      answer: typeof given === "string" ? given : JSON.stringify(given), duration_ms: Date.now() - startedAt,
+      answer: given === null ? null : (typeof given === "string" ? given : JSON.stringify(given)), duration_ms: Date.now() - startedAt,
     });
     sessionDone++; lastId = `${cur.deck_id}/${card.id}`;
     load();
