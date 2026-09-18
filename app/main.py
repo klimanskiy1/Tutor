@@ -1,10 +1,11 @@
 """HTTP API + раздача статики. Запуск: python run.py"""
 import json
+import random
 import threading
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -123,24 +124,72 @@ def api_reset_deck(deck_id: str):
 
 # ---------- учёба ----------
 
-@app.get("/api/decks/{deck_id}/next")
-def api_next(deck_id: str, cram: bool = False, exclude: str | None = None):
-    d = deck_meta(deck_id)
+def parse_deck_ids(s: str) -> list[str]:
+    ids = [x for x in s.split(",") if x]
+    if not ids:
+        raise decks.DeckError("не указаны колоды")
+    return ids
+
+
+@app.get("/api/study/next")
+def api_study_next(decks_: str = Query(alias="decks"), cram: bool = False, exclude: str | None = None):
+    """Следующая карточка по одной или нескольким колодам (decks=a,b,c).
+
+    Приоритет: просроченные повторы (самые старые), потом новые — случайная колода из тех,
+    где ещё есть новые (разделы перемешиваются, как на экзамене), потом в режиме cram — ближайшие по due.
+    exclude = "deck/card" — не показывать эту карточку два раза подряд в cram.
+    """
+    ids = parse_deck_ids(decks_)
+    metas = {i: deck_meta(i) for i in ids}
+    ex_deck, ex_card = (exclude.split("/", 1) if exclude and "/" in exclude else (None, exclude))
+    now = scheduler.now_utc().isoformat()
     with lock:
-        counts = scheduler.deck_counts(conn, deck_id, d["new_per_day"])
-        row = scheduler.next_card(conn, deck_id, d["new_per_day"], ignore_limits=cram, exclude=exclude)
-        if row is None:
+        counts = {"total": 0, "new": 0, "new_total": 0, "due": 0, "learning": 0, "next_due": None}
+        candidates = []
+        for i, m in metas.items():
+            c = scheduler.deck_counts(conn, i, m["new_per_day"])
+            for k in ("total", "new", "new_total", "due", "learning"):
+                counts[k] += c[k]
+            if c["next_due"] and (counts["next_due"] is None or c["next_due"] < counts["next_due"]):
+                counts["next_due"] = c["next_due"]
+            row = scheduler.next_card(conn, i, m["new_per_day"], ignore_limits=cram,
+                                      exclude=ex_card if i == ex_deck else None)
+            if row is not None:
+                kind = 1 if row["fsrs"] is None else (0 if row["due"] <= now else 2)
+                candidates.append((kind, row["due"] or "", random.random(), i, row))
+        if not candidates:
             return {"card": None, "counts": counts}
+        candidates.sort(key=lambda t: t[:3])
+        _, _, _, deck_id, row = candidates[0]
         intervals = scheduler.preview_intervals(row)
     content = json.loads(row["content"])
     return {
         "card": public_card(content, row["card_id"]),
+        "deck_id": deck_id,
+        "deck_name": metas[deck_id]["name"],
         "is_new": row["fsrs"] is None,
         "state": row["state"],
         "reps": row["reps"],
         "intervals": intervals,
         "counts": counts,
     }
+
+
+@app.get("/api/decks/{deck_id}/next")
+def api_next(deck_id: str, cram: bool = False, exclude: str | None = None):
+    return api_study_next(deck_id, cram, exclude)
+
+
+@app.get("/api/study/cards")
+def api_study_cards(decks_: str = Query(alias="decks")):
+    """Все карточки колод с ответами, в порядке файлов — для режима просмотра."""
+    out = []
+    for deck_id in parse_deck_ids(decks_):
+        d = deck_meta(deck_id)
+        for n, c in enumerate(d["cards"], 1):
+            out.append({"deck_id": deck_id, "deck_name": d["name"], "n": n, "total": len(d["cards"]),
+                        "card": {**c, "id": decks.card_key(c)}})
+    return out
 
 
 class CheckIn(BaseModel):
